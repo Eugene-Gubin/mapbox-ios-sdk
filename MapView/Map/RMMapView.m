@@ -184,7 +184,8 @@
 
     CGAffineTransform _mapTransform;
     CATransform3D _annotationTransform;
-
+    CATransform3D _userTransform;
+    
     NSOperationQueue *_moveDelegateQueue;
     NSOperationQueue *_zoomDelegateQueue;
 
@@ -967,10 +968,13 @@
         float zoomScale = _mapScrollView.zoomScale;
         CGSize newZoomSize = CGSizeMake(_mapScrollView.bounds.size.width / zoomFactor,
                                         _mapScrollView.bounds.size.height / zoomFactor);
+        
+        CGPoint pivotInMap = [self overlayPixelToMapPixel:pivot];
+        
         CGFloat factorX = pivot.x / _mapScrollView.bounds.size.width,
-                factorY = pivot.y / _mapScrollView.bounds.size.height;
-        CGRect zoomRect = CGRectMake(((_mapScrollView.contentOffset.x + pivot.x) - (newZoomSize.width * factorX)) / zoomScale,
-                                     ((_mapScrollView.contentOffset.y + pivot.y) - (newZoomSize.height * factorY)) / zoomScale,
+        factorY = pivot.y / _mapScrollView.bounds.size.height;
+        CGRect zoomRect = CGRectMake((pivotInMap.x - (newZoomSize.width * factorX)) / zoomScale,
+                                     (pivotInMap.y - (newZoomSize.height * factorY)) / zoomScale,
                                      newZoomSize.width / zoomScale,
                                      newZoomSize.height / zoomScale);
         [_mapScrollView zoomToRect:zoomRect animated:animated];
@@ -987,7 +991,7 @@
 - (float)nextNativeZoomFactor
 {
     float newZoom = fminf(floorf([self zoom] + 1.0), [self maxZoom]);
-
+    
     return exp2f(newZoom - [self zoom]);
 }
 
@@ -1437,7 +1441,10 @@
     if (_zoom == _lastZoom)
     {
         CGPoint contentOffset = _mapScrollView.contentOffset;
-        CGPoint delta = CGPointMake(_lastContentOffset.x - contentOffset.x, _lastContentOffset.y - contentOffset.y);
+        CGPoint lastContentOffsetScreen = [self mapPixelToOverlayPixel:_lastContentOffset];
+        CGPoint contentOffsetScreen = [self mapPixelToOverlayPixel:contentOffset];
+
+        CGPoint delta = CGPointMake(lastContentOffsetScreen.x - contentOffsetScreen.x, lastContentOffsetScreen.y - contentOffsetScreen.y);
         _accumulatedDelta.x += delta.x;
         _accumulatedDelta.y += delta.y;
 
@@ -1913,14 +1920,12 @@
 
     UIGraphicsBeginImageContextWithOptions(self.bounds.size, self.opaque, [[UIScreen mainScreen] scale]);
 
-    for (RMMapTiledLayerView *tiledLayerView in _tiledLayersSuperview.subviews)
-        tiledLayerView.useSnapshotRenderer = YES;
+    [self beginTakeSnapshot];
 
     [self.layer renderInContext:UIGraphicsGetCurrentContext()];
 
-    for (RMMapTiledLayerView *tiledLayerView in _tiledLayersSuperview.subviews)
-        tiledLayerView.useSnapshotRenderer = NO;
-
+    [self endTakeSnapshot];
+    
     UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
 
     UIGraphicsEndImageContext();
@@ -1933,6 +1938,18 @@
 - (UIImage *)takeSnapshot
 {
     return [self takeSnapshotAndIncludeOverlay:YES];
+}
+
+- (void) beginTakeSnapshot
+{
+    for (RMMapTiledLayerView *tiledLayerView in _tiledLayersSuperview.subviews)
+        tiledLayerView.useSnapshotRenderer = YES;
+}
+
+- (void) endTakeSnapshot
+{
+    for (RMMapTiledLayerView *tiledLayerView in _tiledLayersSuperview.subviews)
+        tiledLayerView.useSnapshotRenderer = NO;
 }
 
 #pragma mark - TileSources
@@ -2463,16 +2480,31 @@
 #pragma mark -
 #pragma mark LatLng/Pixel translation functions
 
+- (CGPoint)mapPixelToOverlayPixel:(CGPoint)mapPixel
+{
+    return [_mapScrollView convertPoint:mapPixel toView:_overlayView];
+}
+
+- (CGPoint)overlayPixelToMapPixel:(CGPoint)overlayPixel
+{
+    return [_overlayView convertPoint:overlayPixel toView:_mapScrollView];
+}
+
 - (CGPoint)projectedPointToPixel:(RMProjectedPoint)projectedPoint
 {
+    if (!isfinite(projectedPoint.x) || !isfinite(projectedPoint.y))
+    {
+        return CGPointMake(INFINITY, INFINITY);
+    }
+    
     RMProjectedRect planetBounds = _projection.planetBounds;
     RMProjectedPoint normalizedProjectedPoint;
 	normalizedProjectedPoint.x = projectedPoint.x + fabs(planetBounds.origin.x);
 	normalizedProjectedPoint.y = projectedPoint.y + fabs(planetBounds.origin.y);
 
     // \bug: There is a rounding error here for high zoom levels
-    CGPoint projectedPixel = CGPointMake((normalizedProjectedPoint.x / _metersPerPixel) - _mapScrollView.contentOffset.x, (_mapScrollView.contentSize.height - (normalizedProjectedPoint.y / _metersPerPixel)) - _mapScrollView.contentOffset.y);
-
+    CGPoint scaledPixel = CGPointMake((normalizedProjectedPoint.x / _metersPerPixel), _mapScrollView.contentSize.height - (normalizedProjectedPoint.y / _metersPerPixel));
+    CGPoint projectedPixel = [self mapPixelToOverlayPixel:scaledPixel];
 //    RMLog(@"pointToPixel: {%f,%f} -> {%f,%f}", projectedPoint.x, projectedPoint.y, projectedPixel.x, projectedPixel.y);
 
     return projectedPixel;
@@ -2485,10 +2517,11 @@
 
 - (RMProjectedPoint)pixelToProjectedPoint:(CGPoint)pixelCoordinate
 {
+    CGPoint mapPixelCoordinate = [self overlayPixelToMapPixel:pixelCoordinate];
     RMProjectedRect planetBounds = _projection.planetBounds;
     RMProjectedPoint normalizedProjectedPoint;
-    normalizedProjectedPoint.x = ((pixelCoordinate.x + _mapScrollView.contentOffset.x) * _metersPerPixel) - fabs(planetBounds.origin.x);
-    normalizedProjectedPoint.y = ((_mapScrollView.contentSize.height - _mapScrollView.contentOffset.y - pixelCoordinate.y) * _metersPerPixel) - fabs(planetBounds.origin.y);
+    normalizedProjectedPoint.x = (mapPixelCoordinate.x * _metersPerPixel) - fabs(planetBounds.origin.x);
+    normalizedProjectedPoint.y = ((_mapScrollView.contentSize.height - mapPixelCoordinate.y) * _metersPerPixel) - fabs(planetBounds.origin.y);
 
 //    RMLog(@"pixelToPoint: {%f,%f} -> {%f,%f}", pixelCoordinate.x, pixelCoordinate.y, normalizedProjectedPoint.x, normalizedProjectedPoint.y);
 
@@ -2651,10 +2684,10 @@
 	normalizedProjectedPoint.x = annotation.projectedLocation.x + fabs(planetBounds.origin.x);
 	normalizedProjectedPoint.y = annotation.projectedLocation.y + fabs(planetBounds.origin.y);
 
-    CGPoint newPosition = CGPointMake((normalizedProjectedPoint.x / _metersPerPixel) - _mapScrollView.contentOffset.x,
-                                      _mapScrollView.contentSize.height - (normalizedProjectedPoint.y / _metersPerPixel) - _mapScrollView.contentOffset.y);
+    CGPoint scaledPixel = CGPointMake(normalizedProjectedPoint.x / _metersPerPixel, _mapScrollView.contentSize.height - (normalizedProjectedPoint.y / _metersPerPixel));
+    CGPoint newPosition = [self mapPixelToOverlayPixel:scaledPixel];
 
-//    RMLog(@"Change annotation at {%f,%f} in mapView {%f,%f}", annotation.position.x, annotation.position.y, mapScrollView.contentSize.width, mapScrollView.contentSize.height);
+//    RMLog(@"Change annotation at {%f,%f} in mapView {%f,%f}", annotation.position.x, annotation.position.y, _mapScrollView.contentSize.width, _mapScrollView.contentSize.height);
 
     [annotation setPosition:newPosition animated:animated];
 }
@@ -3551,6 +3584,18 @@
         
         [_viewControllerPresentingAttribution presentViewController:attributionViewController animated:YES completion:nil];
     }
+}
+
+- (void) applyMapTransform:(CATransform3D)transform
+{
+    _userTransform = transform;
+    _mapScrollView.transform = CATransform3DGetAffineTransform(transform);
+    [self correctPositionOfAllAnnotations];
+}
+
+- (CATransform3D) getUserTransform
+{
+    return _userTransform;
 }
 
 @end

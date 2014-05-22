@@ -294,6 +294,9 @@ typedef enum : NSUInteger {
 *   @return An image depicting the map view. */
 - (UIImage *)takeSnapshotAndIncludeOverlay:(BOOL)includeOverlay;
 
+- (void) beginTakeSnapshot;
+- (void) endTakeSnapshot;
+
 #pragma mark - Annotations
 
 /** @name Annotating the Map */
@@ -508,5 +511,10 @@ typedef enum : NSUInteger {
 *   @param mode The mode used to track the user location. 
 *   @param animated Whether changes to the map center or rotation should be animated when the mode is changed. */
 - (void)setUserTrackingMode:(RMUserTrackingMode)mode animated:(BOOL)animated;
+
+- (void)applyMapTransform:(CATransform3D)transform;
+- (CATransform3D) getUserTransform;
+- (CGPoint)mapPixelToOverlayPixel:(CGPoint)mapPixel;
+- (CGPoint)overlayPixelToMapPixel:(CGPoint)overlayPixel;
 
 @end

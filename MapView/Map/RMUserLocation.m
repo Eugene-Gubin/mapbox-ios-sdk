@@ -76,8 +76,6 @@
             else
                 [self updateTintColor];
         }
-
-        super.layer.zPosition = -MAXFLOAT + 2;
     }
 
     return super.layer;
@@ -96,7 +94,7 @@
         //
         CGFloat whiteWidth = 24.0;
 
-        CGRect rect = CGRectMake(0, 0, whiteWidth * 1.25, whiteWidth * 1.25);
+        CGRect rect = CGRectMake(0, 0, whiteWidth * 1.5, whiteWidth * 1.5);
 
         UIGraphicsBeginImageContextWithOptions(rect.size, NO, [[UIScreen mainScreen] scale]);
         CGContextRef context = UIGraphicsGetCurrentContext();

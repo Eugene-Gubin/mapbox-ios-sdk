@@ -1,6 +1,98 @@
 Changelog
 ---------
 
+### 1.6.1
+#### April 25, 2015
+
+  - Allow requirement for iOS 8 location services to be satisified both "always" and "when in use" modes. 
+  - Fixed a bug when checking the types of tile sources that can be taken offline. 
+  - Better developer warnings around when a Mapbox access token is required. 
+  - Fixed a visual glitch with the user location dot. 
+  - Improvements and fixes to CocoaPods installation method. 
+
+### 1.6.0
+#### February 4, 2015
+
+  - Removed support for Mapbox `v3` API and require [access tokens](https://www.mapbox.com/developers/api/#access-tokens). 
+  - Fixed a small bug with database caching which was also causing an error in the console log. 
+  - Reduced console log verbosity. 
+  - Deprecated the `-[RMMapboxSource init]` convenience initializer since tokens are now required. 
+  - Updated the included GRMustache from 6.8.3 to 7.3.0. 
+  - Documentation improvements. 
+
+### 1.5.1
+#### January 28, 2015
+
+  - Deprecated `+[RMConfiguration configuration]` in favor of the Swift-friendly and better-looking `+[RMConfiguration sharedInstance]`. 
+  - Fixed a bug in the docs removal script. 
+  - Documentation improvements. 
+
+### 1.5.0
+#### January 16, 2015
+
+  - Re-added support for Mapbox `v4` API and [access tokens](https://www.mapbox.com/developers/api/#access-tokens) (removed temporarily in `1.4.0`), which are required for new accounts. 
+  - Added support for iOS 8's QoS on background network requests. 
+  - Improved error handling. 
+  - Improved localization support. 
+  - Improved deprecation notification on some previously-removed API. 
+  - A map view's `-setCenterCoordinate:` is no longer animated by default. 
+  - Fixed an Auto Layout bug. 
+  - Fixed some memory leaks. 
+  - Performance improvements, especially to background downloading for offline use and to general disk caching. 
+  - Clarified that only web-based tile sources are eligible for background downloading. 
+  - Documentation improvements. 
+
+### 1.4.1
+#### September 5, 2014
+
+  - Properly deprecated `-[RMMapView orderMarkersByYPosition]` and `-[RMMapView orderClusterMarkersAboveOthers]`. 
+
+### 1.4.0
+#### September 4, 2014
+
+  - Temporarily removed support for Mapbox `v4` API and [access tokens](https://www.mapbox.com/developers/api/#access-tokens) in tile and metadata requests. 
+  - Added a new `-[RMMapViewDelegate annotationSortingComparatorForMapView:]` callback allowing customization of annotation layer stacking order. This deprecates `-[RMMapView orderMarkersByYPosition]` and `-[RMMapView orderClusterMarkersAboveOthers]`. 
+  - Fixed a bug with tile source initialization in `-viewDidLoad` and/or from storyboards. 
+  - Better enforce proper `RMGreatCircleAnnotation` initialization. 
+  - Fixed a memory leak in `RMShape`. 
+  - Fixed a bug with drawing of `RMPolygonAnnotation` interior polygons. 
+  - Documentation fixes. 
+
+### 1.3.0
+#### August 14, 2014
+
+  - Added support for Mapbox `v4` API and [access tokens](https://www.mapbox.com/developers/api/#access-tokens) in tile and metadata requests. 
+  - Now ensures that all Mapbox API requests are over HTTPS.   
+  - Updated FMDB SQLite library under the hood for caching and MBTiles support. 
+  - Updated some support for the forthcoming iOS 8. 
+  - Fixed a crash that could occur when the map view delegate changed `showsUserLocation`. 
+  - Fixes a minor bug with map view subview constraints during use of tab bar controllers. 
+  - Fixed a minor memory leak with Grand Central Dispatch queues. 
+  - Fixed a small deployment problem for iOS 5. 
+  - Quieted some debug logging. 
+
+### 1.2.0
+#### June 23, 2014
+
+  - Added an `RMGreatCircleAnnotation` class for geodesic polylines. 
+  - Allow for additional touch gesture padding around thin `RMShape` layers. 
+  - Added an `RMTileCache` method for retrieving anticipated raster tile background download counts for a given coverage area. 
+  - Added some documentation to the now-supported `RMCompositeSource` for client-side raster tile compositing.
+  - Upgraded SMCalloutView with updated iOS 7+ support. 
+  - No longer allow callouts on non-marker annotation layers.
+  - Minor fix to center coordinate/zoom level animation method. 
+  - Use magnetic heading if true heading isn't accurate. 
+  - Added a debug log when using the default watermarked map style. 
+  - Updated some syntax to the newer boxed literals. 
+  - Removed some compiler flags that would over-optimize and make debugging difficult. 
+  - Made some improvements to the map view long-press gesture. 
+  - Fixed an issue with certain tile sources having wrong tile image request methods called. 
+  - Fixed some issues with the SQLite-backed tile cache not reclaiming freed disk space. 
+  - Fixed some retain cycle memory use bugs.
+  - Fixed a bug when toggling the logo bug and attribution button. 
+  - Fixed a crash when trying to add invalid annotations. 
+  - Fixed a bug with `RMStaticMapView` always using the default map style. 
+
 ### 1.1.0
 #### January 2, 2014
 

@@ -55,6 +55,8 @@
 
 #import "SMCalloutView.h"
 
+//#import "math.h"
+
 #pragma mark --- begin constants ----
 
 #define kZoomRectPixelBuffer 150.0
@@ -2772,10 +2774,13 @@
 
 - (CGPoint)projectedPointToPixel:(RMProjectedPoint)projectedPoint
 {
-    if (!isfinite(projectedPoint.x) || !isfinite(projectedPoint.y))
-    {
+    if (![self isfinite:projectedPoint.x] || ![self isfinite:projectedPoint.y]) {
         return CGPointMake(INFINITY, INFINITY);
     }
+//    if (!isfinite(projectedPoint.x) || !isfinite(projectedPoint.y))
+//    {
+//        return CGPointMake(INFINITY, INFINITY);
+//    }
     
     RMProjectedRect planetBounds = _projection.planetBounds;
     RMProjectedPoint normalizedProjectedPoint;
@@ -2788,6 +2793,10 @@
 //    RMLog(@"pointToPixel: {%f,%f} -> {%f,%f}", projectedPoint.x, projectedPoint.y, projectedPixel.x, projectedPixel.y);
 
     return projectedPixel;
+}
+
+-(BOOL)isfinite:(double)value {
+    return value != INFINITY || value != NAN;
 }
 
 - (CGPoint)coordinateToPixel:(CLLocationCoordinate2D)coordinate
